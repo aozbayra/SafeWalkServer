@@ -64,6 +64,8 @@ public class SafeWalkServer implements Runnable {
     public int getLocalPort() {
         return serverSocket.getLocalPort();
     }
+    public boolean checkValidity() {
+    }
     
 }
         
