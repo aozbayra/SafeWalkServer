@@ -3,7 +3,7 @@ import java.net.*;
 import java.util.*;
 
 public class SafeWalkServer implements Runnable {
-    private Socket socket;
+    private Socket clientSocket;
     private ServerSocket serverSocket;
     
     public static void main(String[] args) {
@@ -18,9 +18,8 @@ public class SafeWalkServer implements Runnable {
             try {
                 int port = Integer.parseInt(args[0]); // Get the given port number
                 // Check if it is in the given range
-                if (port > 1025 && port < 65535) {
+                if (port > 1025 && port < 65535) 
                     new SafeWalkServer(Integer.parseInt(args[0]));
-                }
                 else
                     System.out.println("Invalid port number");
             } catch (Exception e) {
@@ -34,7 +33,6 @@ public class SafeWalkServer implements Runnable {
     public SafeWalkServer(int port) throws IOException {
         serverSocket = new ServerSocket(port);
         serverSocket.setReuseAddress(true);
-        run();
     }
     
     public SafeWalkServer() throws IOException {
@@ -51,10 +49,10 @@ public class SafeWalkServer implements Runnable {
     public void run() {
         while (true) {
             try {
-            socket = serverSocket.accept();
-            System.out.printf("Connection received from %s%n", socket);
+            clientSocket = serverSocket.accept();
             
-            }
+            // TODO
+            } 
             catch (Exception e) {
                 e.printStackTrace();
             }
@@ -64,6 +62,29 @@ public class SafeWalkServer implements Runnable {
     public int getLocalPort() {
         return serverSocket.getLocalPort();
     }
+    
+    public void send() {
+        try {
+            PrintWriter netOut = new PrintWriter(clientSocket.getOutputStream());  // Tool to send input to the server socket
+            Scanner in = new Scanner(System.in);  // Tool to get input from keyboard
+            System.out.println("Send something: ");
+            String input = in.nextLine();
+            netOut.println(input);  // Writing to the server
+            netOut.flush(); // Sending what I just wrote
+        } 
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void receive() {
+        try {
+            BufferedReader netBuffer = new BufferedReader(clientSocket.getInputStream());
+            System.out.println(netBuffer.readline());
+            
+            
+    
+    
     
 }
         
