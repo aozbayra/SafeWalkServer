@@ -53,7 +53,9 @@ public class SafeWalkServer implements Runnable {
             try {
             socket = serverSocket.accept();
             System.out.printf("Connection received from %s%n", socket);
-            System.out.println("Received from client: " + getInput());
+            String input = getInput();
+            System.out.println("Received from client: " + input);
+            System.out.println(isCommand(input));
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -70,10 +72,32 @@ public class SafeWalkServer implements Runnable {
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         pw.println("Enter a command or request: ");
         pw.flush();
-        
         String input = in.readLine();
         return input;
     }
+    
+    private boolean isCommand(String input) {
+        if (input.charAt(0) == ':') 
+            return true;
+        return false;
+    }
+    
+//    private void checkValidityCommand(String input) {
+//        if (input.equals(":LIST_PENDING_REQUESTS"))
+//            // CALL THE METHOD
+//        else if (input.equals(":RESET"))
+//            // CALL THE METHOD
+//        else if (input.equals(":SHUTDOWN"))
+//            // Close the calling client and also any other open client
+//        
+//        else
+//            return false;
+//    }
+    
+
+        
+      
+            
     
 }
         
