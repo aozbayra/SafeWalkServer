@@ -53,7 +53,7 @@ public class SafeWalkServer implements Runnable {
             try {
             socket = serverSocket.accept();
             System.out.printf("Connection received from %s%n", socket);
-            
+            System.out.println("Received from client: " + getInput());
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -64,7 +64,15 @@ public class SafeWalkServer implements Runnable {
     public int getLocalPort() {
         return serverSocket.getLocalPort();
     }
-    public boolean checkValidity() {
+    
+    public String getInput() throws Exception {
+        PrintWriter pw = new PrintWriter(socket.getOutputStream());
+        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        pw.println("Enter a command or request: ");
+        pw.flush();
+        
+        String input = in.readLine();
+        return input;
     }
     
 }
