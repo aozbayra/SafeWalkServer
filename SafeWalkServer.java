@@ -5,6 +5,8 @@ import java.util.*;
 public class SafeWalkServer implements Runnable {
     protected Socket socket;
     private ServerSocket serverSocket;
+    protected Client client;
+    List<Client> clientList = new ArrayList<Client>();
     
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -58,8 +60,13 @@ public class SafeWalkServer implements Runnable {
                 if (!isCommand(input)) {
                     if (checkValidityRequest(input)) {
                         String[] tokens = extractTokens(input);
-                        Client client = new Client(socket, tokens);
-                        System.out.println(client.name);
+                        client = new Client(socket, tokens);
+                        
+                        clientList.add(client);
+
+                        
+                        
+
                     }
                 }
                 
@@ -120,6 +127,16 @@ public class SafeWalkServer implements Runnable {
    
         return true;
     }
+    
+    public int checkFrom(Client client, ArrayList list) {
+        String fromCurrent = client.from;
+        for (int i = 0;i < list.size(); i++) {
+            
+            
+    
+
+        
+        
     
     private String[] extractTokens(String input) {
         char[] charArray = input.toCharArray();
