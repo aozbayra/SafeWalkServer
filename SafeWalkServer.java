@@ -63,7 +63,7 @@ public class SafeWalkServer implements Runnable {
                         client = new Client(socket, tokens);
                         int matchIndex = checkMatch();
                         if ( matchIndex > -1) 
-                            System.out.println("A match is found");
+                            giveResponse(matchIndex);
                         else {
                             clientList.add(client);
                             System.out.println("No match is found");
@@ -134,9 +134,7 @@ public class SafeWalkServer implements Runnable {
         String toCurrent = client.to; 
         for(Client i: clientList) {
             if (i.from.equals(fromCurrent)) {
-                System.out.println("From is equal");
                 if (i.to.equals(toCurrent) || i.to.equals("*") || toCurrent.equals("*")) {
-                    System.out.println("To is equal");
                     if (i.to.equals("*") && toCurrent.equals("*"))
                         continue;
                     else 
@@ -146,6 +144,23 @@ public class SafeWalkServer implements Runnable {
         }
         return -1;
     }
+    
+    public void giveResponse(int matchIndex) throws IOException {
+        Client pairedClient = clientList.get(matchIndex);
+        PrintWriter current = new PrintWriter(client.getOutputStream());
+        PrintWriter paired = new PrintWriter(pairedClient.getOutputStream());
+        current.println("RESPONSE: " + pairedClient.name + "," + pairedClient.from + "," 
+                            + pairedClient.to + "," + pairedClient.type);
+        current.flush();
+        paired.println("RESPONSE: " + client.name + "," + client.from + ","
+                           + client.to + "," + client.type);
+        paired.flush();
+        clientList.remove(matchIndex);
+        client.socket.close();
+        pairedClient.socket.close();
+                        
+    }
+        
             
      
     private String[] extractTokens(String input) {
