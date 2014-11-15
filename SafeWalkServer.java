@@ -70,7 +70,9 @@ public class SafeWalkServer implements Runnable {
                         }
                     }
                 }
-                
+                else {
+                    checkValidityCommand(input);
+                } 
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -97,17 +99,39 @@ public class SafeWalkServer implements Runnable {
         return false;
     }
     
-//    private void checkValidityCommand(String input) {
-//        if (input.equals(":LIST_PENDING_REQUESTS"))
-//            // CALL THE METHOD
-//        else if (input.equals(":RESET"))
-//            // CALL THE METHOD
-//        else if (input.equals(":SHUTDOWN"))
-//            // Close the calling client and also any other open client
-//        
-//        else
-//            return false;
-//    }
+    private void checkValidityCommand(String input) {
+        if (input.equals(":LIST_PENDING_REQUESTS")) {
+            try {
+                listRequests();
+            
+            } catch (Exception e) {
+            }
+        }
+        //else if (input.equals(":RESET"))
+            // CALL THE METHOD
+        //else if (input.equals(":SHUTDOWN"))
+            // Close the calling client and also any other open client
+    }
+       
+    
+    private void listRequests() throws IOException {
+        int count = 0;
+        PrintWriter pw = new PrintWriter(socket.getOutputStream());
+        pw.print("[");
+        pw.flush();
+        for (Client i : clientList) {
+            pw.print("[" + i.name + ", " + i.from + ", " + i.to + ", " + i.type);
+            pw.flush();
+            
+            if (count != clientList.size() - 1) {
+                pw.print("], ");
+                pw.flush();
+            }
+            count++;
+        }
+        pw.print("]]");
+        pw.flush();
+    }
     
     public boolean checkValidityRequest(String input) {
         String[] locations = {"CL50", "EE", "LWSN", "PMU", "PUSH", "*"};
