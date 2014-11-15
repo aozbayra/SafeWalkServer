@@ -6,7 +6,7 @@ public class SafeWalkServer implements Runnable {
     protected Socket socket;
     private ServerSocket serverSocket;
     protected Client client;
-    List<Client> clientList = new ArrayList<Client>();
+    protected ArrayList<Client> clientList = new ArrayList<Client>();
     
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -61,12 +61,13 @@ public class SafeWalkServer implements Runnable {
                     if (checkValidityRequest(input)) {
                         String[] tokens = extractTokens(input);
                         client = new Client(socket, tokens);
-                        
-                        clientList.add(client);
-
-                        
-                        
-
+                        int matchIndex = checkMatch();
+                        if ( matchIndex > -1) 
+                            System.out.println("A match is found");
+                        else {
+                            clientList.add(client);
+                            System.out.println("No match is found");
+                        }
                     }
                 }
                 
@@ -128,16 +129,25 @@ public class SafeWalkServer implements Runnable {
         return true;
     }
     
-    public int checkFrom(Client client, ArrayList list) {
+    public int checkMatch() {
         String fromCurrent = client.from;
-        for (int i = 0;i < list.size(); i++) {
+        String toCurrent = client.to; 
+        for(Client i: clientList) {
+            if (i.from.equals(fromCurrent)) {
+                System.out.println("From is equal");
+                if (i.to.equals(toCurrent) || i.to.equals("*") || toCurrent.equals("*")) {
+                    System.out.println("To is equal");
+                    if (i.to.equals("*") && toCurrent.equals("*"))
+                        continue;
+                    else 
+                        return clientList.indexOf(i);
+                }
+            }
+        }
+        return -1;
+    }
             
-            
-    
-
-        
-        
-    
+     
     private String[] extractTokens(String input) {
         char[] charArray = input.toCharArray();
         int[] commaIndex = new int[3];
@@ -183,11 +193,7 @@ public class SafeWalkServer implements Runnable {
         
         public OutputStream getOutputStream() throws IOException {
             return socket.getOutputStream();
-        }
-            
+        }            
     }
-        
-      
-            
-    
+                
 }
