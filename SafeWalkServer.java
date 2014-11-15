@@ -3,7 +3,7 @@ import java.net.*;
 import java.util.*;
 
 public class SafeWalkServer implements Runnable {
-    private Socket socket;
+    protected Socket socket;
     private ServerSocket serverSocket;
     
     public static void main(String[] args) {
@@ -51,11 +51,18 @@ public class SafeWalkServer implements Runnable {
     public void run() {
         while (true) {
             try {
-            socket = serverSocket.accept();
-            System.out.printf("Connection received from %s%n", socket);
-            String input = getInput();
-            System.out.println("Received from client: " + input);
-            System.out.println(isCommand(input));
+                socket = serverSocket.accept();
+                System.out.printf("Connection received from %s%n", socket);
+                String input = getInput();
+                System.out.println("Received from client: " + input);
+                if (!isCommand(input)) {
+                    if (checkValidityRequest(input)) {
+                        String[] tokens = extractTokens(input);
+                        Client client = new Client(socket, tokens);
+                        System.out.println(client.name);
+                    }
+                }
+                
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -94,21 +101,73 @@ public class SafeWalkServer implements Runnable {
 //            return false;
 //    }
     
-    private void checkValidityRequest(String input) {
+    public boolean checkValidityRequest(String input) {
         String[] locations = {"CL50", "EE", "LWSN", "PMU", "PUSH", "*"};
+        List<String> locList = new ArrayList<String>(Arrays.asList(locations));
+        
+        String[] tokens = extractTokens(input);
+
+        if (tokens.length == 1) 
+            return false;
+        if (!locList.contains(tokens[2]))
+            return false;
+        if (!locList.contains(tokens[1]))
+            return false;
+        if (tokens[2].equals(tokens[1]))
+            return false;
+        if (tokens[1].equals("*"))
+            return false;
+   
+        return true;
+    }
+    
+    private String[] extractTokens(String input) {
         char[] charArray = input.toCharArray();
         int[] commaIndex = new int[3];
         int c = 0;
+        String[] error = {"Error"};
+        
         for (int i = 0; i < charArray.length; i++) {
             if (charArray[i] == ',') {
                 commaIndex[c] = i;
                 c++;
             }
         }
-        String token1 = input.substring(0, commaIndex[0]);
-        String token2 = input.substring(commaIndex[0], commaIndex[1]);
-        String token3 = input.substring(commaIndex[1], commaIndex[2]);
-        String token4 = input.substring(commaIndex[2], input.length());   
+        
+        if (c != 3) 
+            return error;
+        
+        String name = input.substring(0, commaIndex[0]);
+        String from = input.substring(commaIndex[0] + 1, commaIndex[1]);
+        String to = input.substring(commaIndex[1] + 1, commaIndex[2]);
+        String type = input.substring(commaIndex[2] + 1, input.length());
+        String[] tokens = {name, from, to, type};
+        
+        return tokens;
+    }
+    
+    private class Client {
+        String name;
+        String from;
+        String to;
+        String type;
+        Socket socket;
+        Client(Socket socket, String[] tokens) throws IOException {
+            this.socket = socket;
+            this.name = tokens[0];
+            this.from = tokens[1];
+            this.to = tokens[2];
+            this.type = tokens[3];
+        }
+        
+        public InputStream getInputStream() throws IOException {
+            return socket.getInputStream();
+        }
+        
+        public OutputStream getOutputStream() throws IOException {
+            return socket.getOutputStream();
+        }
+            
     }
         
       
