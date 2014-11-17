@@ -1,9 +1,14 @@
-import org.junit.*;
+import static org.junit.Assert.assertEquals;
 
-import static org.junit.Assert.*;
-
-import java.net.SocketTimeoutException;
 import java.io.IOException;
+
+import org.junit.Test;
+
+/**
+ * Project 5
+ * @author Alihan Ozbayrak, aozbayra, LN2
+ * @author Billy Finger, wfinger, LN2
+ */
 
 public class SafeWalkServerTest {
     final String ERR_INVALID_REQUEST = "ERROR: invalid request";
@@ -384,11 +389,12 @@ public class SafeWalkServerTest {
      **/
     @Test
     public void testAnyMatch2() throws InterruptedException, IOException {
+
+        //System.err.println("here");
         SafeWalkServer s = new SafeWalkServer();
         int port = s.getLocalPort();
         Thread st = new Thread(s);
         st.start();
-        
         Client c1 = new Client(HOST, port, "Danushka,LWSN,*,0");
         Thread ct1 = new Thread(c1);
         ct1.start();
@@ -447,7 +453,9 @@ public class SafeWalkServerTest {
         assertEquals("RESPONSE: Dihein,LWSN,PUSH,0", c3.getResult());
         
         Client c4 = new Client(HOST, port, ":LIST_PENDING_REQUESTS");
+        
         Thread ct4 = new Thread(c4);
+        
         ct4.start();
         ct4.join();
         
