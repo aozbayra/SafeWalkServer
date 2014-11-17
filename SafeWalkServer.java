@@ -51,8 +51,8 @@ public class SafeWalkServer implements Runnable {
     }
     
     public void run() {
-    	boolean result = true;
-        while (result) {
+        int commandCheck = -1;
+        while (true) {
             try {
                 socket = serverSocket.accept();
                 System.out.printf("Connection received from %s%n", socket);
@@ -71,17 +71,23 @@ public class SafeWalkServer implements Runnable {
                         }
                     }
                     else {
-                    	printError();
+                        printError();
                     }
-                    	
+                    
                 }
                 else {
-                    result = checkValidityCommand(input);
-                    if (result) {
-                    	printError();
-                    }
-                }
-                
+                    commandCheck = checkValidityCommand(input);
+                    if (commandCheck == 0) 
+                        printError();
+                    else if (commandCheck == 1)
+                        listRequests();
+                    else if (commandCheck == 2)
+                        serverReset();
+                    else if (commandCheck == 3) {
+                        serverShutdown();
+                        break;
+                    } 
+                }  
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -94,10 +100,10 @@ public class SafeWalkServer implements Runnable {
     }
     
     private void printError() throws IOException {
-    	PrintWriter pw = new PrintWriter(socket.getOutputStream());
-    	pw.println("ERROR: invalid request");
-    	pw.flush();
-    	socket.close();
+        PrintWriter pw = new PrintWriter(socket.getOutputStream());
+        pw.println("ERROR: invalid request");
+        pw.flush();
+        socket.close();
     }
     
     public String getInput() throws Exception {
@@ -115,31 +121,15 @@ public class SafeWalkServer implements Runnable {
         return false;
     }
     
-    private boolean checkValidityCommand(String input) {
-        if (input.equals(":LIST_PENDING_REQUESTS")) {
-            try {
-                listRequests();
-            
-            } catch (Exception e) {
-            }
-        }
-        else if (input.equals(":RESET")) {
-            try {
-                serverReset();
-            } catch (Exception e) {
-            }
-                
-        }
-        else if (input.equals(":SHUTDOWN")) {
-            try {
-                serverShutdown();
-                return false;
-            } catch (Exception e) {
-            }
-        }
-        return true;	
+    private int checkValidityCommand(String input) {
+        if (input.equals(":LIST_PENDING_REQUESTS")) 
+            return 1;
+        else if (input.equals(":RESET")) 
+            return 2; 
+        else if (input.equals(":SHUTDOWN")) 
+            return 3;
+        return 0; 
     }
-       
     
     private void listRequests() throws IOException {
         int count = 0;
@@ -182,7 +172,6 @@ public class SafeWalkServer implements Runnable {
             i.socket.close();
         }
         socket.close();
-        System.exit(0);
     }
     
     public boolean checkValidityRequest(String input) {
@@ -190,7 +179,7 @@ public class SafeWalkServer implements Runnable {
         List<String> locList = new ArrayList<String>(Arrays.asList(locations));
         
         String[] tokens = extractTokens(input);
-
+        
         if (tokens.length == 1) 
             return false;
         if (!locList.contains(tokens[2]))
@@ -201,7 +190,7 @@ public class SafeWalkServer implements Runnable {
             return false;
         if (tokens[1].equals("*"))
             return false;
-   
+        
         return true;
     }
     
@@ -236,12 +225,10 @@ public class SafeWalkServer implements Runnable {
         paired.close();
         client.socket.close();
         pairedClient.socket.close();
-
-                        
-    }
         
-            
-     
+        
+    }
+    
     private String[] extractTokens(String input) {
         char[] charArray = input.toCharArray();
         int[] commaIndex = new int[3];
@@ -285,5 +272,5 @@ public class SafeWalkServer implements Runnable {
             return socket.getOutputStream();
         }            
     }
-                
+    
 }
