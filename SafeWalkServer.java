@@ -5,8 +5,8 @@ import java.util.*;
 public class SafeWalkServer implements Runnable {
     protected Socket socket;
     private ServerSocket serverSocket;
-    protected Client client;
-    protected ArrayList<Client> clientList = new ArrayList<Client>();
+    protected User client;
+    protected ArrayList<User> clientList = new ArrayList<User>();
     
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -61,7 +61,7 @@ public class SafeWalkServer implements Runnable {
                 if (!isCommand(input)) {
                     if (checkValidityRequest(input)) {
                         String[] tokens = extractTokens(input);
-                        client = new Client(socket, tokens);
+                        client = new User(socket, tokens);
                         int matchIndex = checkMatch();
                         if ( matchIndex > -1) 
                             giveResponse(matchIndex);
@@ -138,7 +138,7 @@ public class SafeWalkServer implements Runnable {
         if (clientList.size() != 0) {
             pw.print("[");
             pw.flush();
-            for (Client i : clientList) {
+            for (User i : clientList) {
                 pw.print("[" + i.name + ", " + i.from + ", " + i.to + ", " + i.type);
                 pw.flush();
                 
@@ -158,7 +158,7 @@ public class SafeWalkServer implements Runnable {
         clientReset.println("RESPONSE: success");
         clientReset.flush();
         
-        for (Client i : clientList) {
+        for (User i : clientList) {
             PrintWriter pw = new PrintWriter(i.getOutputStream());
             pw.println("ERROR: connection reset");
             pw.flush();
@@ -168,7 +168,7 @@ public class SafeWalkServer implements Runnable {
     }
     
     private void serverShutdown() throws IOException {
-        for (Client i : clientList) {
+        for (User i : clientList) {
             i.socket.close();
         }
         socket.close();
@@ -197,7 +197,7 @@ public class SafeWalkServer implements Runnable {
     public int checkMatch() {
         String fromCurrent = client.from;
         String toCurrent = client.to; 
-        for(Client i: clientList) {
+        for(User i: clientList) {
             if (i.from.equals(fromCurrent)) {
                 if (i.to.equals(toCurrent) || i.to.equals("*") || toCurrent.equals("*")) {
                     if (i.to.equals("*") && toCurrent.equals("*"))
@@ -211,7 +211,7 @@ public class SafeWalkServer implements Runnable {
     }
     
     public void giveResponse(int matchIndex) throws IOException {
-        Client pairedClient = clientList.get(matchIndex);
+        User pairedClient = clientList.get(matchIndex);
         PrintWriter current = new PrintWriter(client.getOutputStream());
         PrintWriter paired = new PrintWriter(pairedClient.getOutputStream());
         current.println("RESPONSE: " + pairedClient.name + "," + pairedClient.from + "," 
@@ -254,13 +254,13 @@ public class SafeWalkServer implements Runnable {
         return tokens;
     }
     
-    private class Client {
+    private class User {
         String name;
         String from;
         String to;
         String type;
         Socket socket;
-        Client(Socket socket, String[] tokens) throws IOException {
+        User(Socket socket, String[] tokens) throws IOException {
             this.socket = socket;
             this.name = tokens[0];
             this.from = tokens[1];
