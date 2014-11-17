@@ -3,8 +3,10 @@ import java.net.*;
 import java.util.*;
 
 public class SafeWalkServer implements Runnable {
-    private Socket socket;
+    protected Socket socket;
     private ServerSocket serverSocket;
+    protected Client client;
+    protected ArrayList<Client> clientList = new ArrayList<Client>();
     
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -49,13 +51,37 @@ public class SafeWalkServer implements Runnable {
     }
     
     public void run() {
-        while (true) {
+    	boolean result = true;
+        while (result) {
             try {
-            socket = serverSocket.accept();
-            System.out.printf("Connection received from %s%n", socket);
-            String input = getInput();
-            System.out.println("Received from client: " + input);
-            System.out.println(isCommand(input));
+                socket = serverSocket.accept();
+                System.out.printf("Connection received from %s%n", socket);
+                String input = getInput();
+                System.out.println("Received from client: " + input);
+                if (!isCommand(input)) {
+                    if (checkValidityRequest(input)) {
+                        String[] tokens = extractTokens(input);
+                        client = new Client(socket, tokens);
+                        int matchIndex = checkMatch();
+                        if ( matchIndex > -1) 
+                            giveResponse(matchIndex);
+                        else {
+                            clientList.add(client);
+                            System.out.println("No match is found");
+                        }
+                    }
+                    else {
+                    	printError();
+                    }
+                    	
+                }
+                else {
+                    result = checkValidityCommand(input);
+                    if (result) {
+                    	printError();
+                    }
+                }
+                
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -65,6 +91,13 @@ public class SafeWalkServer implements Runnable {
     
     public int getLocalPort() {
         return serverSocket.getLocalPort();
+    }
+    
+    private void printError() throws IOException {
+    	PrintWriter pw = new PrintWriter(socket.getOutputStream());
+    	pw.println("ERROR: invalid request");
+    	pw.flush();
+    	socket.close();
     }
     
     public String getInput() throws Exception {
@@ -82,23 +115,175 @@ public class SafeWalkServer implements Runnable {
         return false;
     }
     
-//    private void checkValidityCommand(String input) {
-//        if (input.equals(":LIST_PENDING_REQUESTS"))
-//            // CALL THE METHOD
-//        else if (input.equals(":RESET"))
-//            // CALL THE METHOD
-//        else if (input.equals(":SHUTDOWN"))
-//            // Close the calling client and also any other open client
-//        
-//        else
-//            return false;
-//    }
+    private boolean checkValidityCommand(String input) {
+        if (input.equals(":LIST_PENDING_REQUESTS")) {
+            try {
+                listRequests();
+            
+            } catch (Exception e) {
+            }
+        }
+        else if (input.equals(":RESET")) {
+            try {
+                serverReset();
+            } catch (Exception e) {
+            }
+                
+        }
+        else if (input.equals(":SHUTDOWN")) {
+            try {
+                serverShutdown();
+                return false;
+            } catch (Exception e) {
+            }
+        }
+        return true;	
+    }
+       
     
+    private void listRequests() throws IOException {
+        int count = 0;
+        PrintWriter pw = new PrintWriter(socket.getOutputStream());
+        
+        if (clientList.size() != 0) {
+            pw.print("[");
+            pw.flush();
+            for (Client i : clientList) {
+                pw.print("[" + i.name + ", " + i.from + ", " + i.to + ", " + i.type);
+                pw.flush();
+                
+                if (count != clientList.size() - 1) {
+                    pw.print("], ");
+                    pw.flush();
+                }
+                count++;
+            }
+            pw.print("]]");
+            pw.flush();
+        }
+    }
+    
+    public void serverReset() throws IOException {
+        PrintWriter clientReset = new PrintWriter(socket.getOutputStream());
+        clientReset.println("RESPONSE: success");
+        clientReset.flush();
+        
+        for (Client i : clientList) {
+            PrintWriter pw = new PrintWriter(i.getOutputStream());
+            pw.println("ERROR: connection reset");
+            pw.flush();
+            i.socket.close();
+        }
+        clientReset.close();
+    }
+    
+    private void serverShutdown() throws IOException {
+        for (Client i : clientList) {
+            i.socket.close();
+        }
+        socket.close();
+        System.exit(0);
+    }
+    
+    public boolean checkValidityRequest(String input) {
+        String[] locations = {"CL50", "EE", "LWSN", "PMU", "PUSH", "*"};
+        List<String> locList = new ArrayList<String>(Arrays.asList(locations));
+        
+        String[] tokens = extractTokens(input);
 
-        
-      
-            
+        if (tokens.length == 1) 
+            return false;
+        if (!locList.contains(tokens[2]))
+            return false;
+        if (!locList.contains(tokens[1]))
+            return false;
+        if (tokens[2].equals(tokens[1]))
+            return false;
+        if (tokens[1].equals("*"))
+            return false;
+   
+        return true;
+    }
     
-}
+    public int checkMatch() {
+        String fromCurrent = client.from;
+        String toCurrent = client.to; 
+        for(Client i: clientList) {
+            if (i.from.equals(fromCurrent)) {
+                if (i.to.equals(toCurrent) || i.to.equals("*") || toCurrent.equals("*")) {
+                    if (i.to.equals("*") && toCurrent.equals("*"))
+                        continue;
+                    else 
+                        return clientList.indexOf(i);
+                }
+            }
+        }
+        return -1;
+    }
+    
+    public void giveResponse(int matchIndex) throws IOException {
+        Client pairedClient = clientList.get(matchIndex);
+        PrintWriter current = new PrintWriter(client.getOutputStream());
+        PrintWriter paired = new PrintWriter(pairedClient.getOutputStream());
+        current.println("RESPONSE: " + pairedClient.name + "," + pairedClient.from + "," 
+                            + pairedClient.to + "," + pairedClient.type);
+        current.flush();
+        paired.println("RESPONSE: " + client.name + "," + client.from + ","
+                           + client.to + "," + client.type);
+        paired.flush();
+        clientList.remove(matchIndex);
+        current.close();
+        paired.close();
+        client.socket.close();
+        pairedClient.socket.close();
+
+                        
+    }
         
             
+     
+    private String[] extractTokens(String input) {
+        char[] charArray = input.toCharArray();
+        int[] commaIndex = new int[3];
+        int c = 0;
+        String[] error = {"Error"};
+        
+        for (int i = 0; i < charArray.length; i++) {
+            if (charArray[i] == ',') {
+                commaIndex[c] = i;
+                c++;
+            }
+        }
+        
+        if (c != 3) 
+            return error;
+        
+        String name = input.substring(0, commaIndex[0]);
+        String from = input.substring(commaIndex[0] + 1, commaIndex[1]);
+        String to = input.substring(commaIndex[1] + 1, commaIndex[2]);
+        String type = input.substring(commaIndex[2] + 1, input.length());
+        String[] tokens = {name, from, to, type};
+        
+        return tokens;
+    }
+    
+    private class Client {
+        String name;
+        String from;
+        String to;
+        String type;
+        Socket socket;
+        Client(Socket socket, String[] tokens) throws IOException {
+            this.socket = socket;
+            this.name = tokens[0];
+            this.from = tokens[1];
+            this.to = tokens[2];
+            this.type = tokens[3];
+        }
+        
+        public OutputStream getOutputStream() throws IOException {
+            return socket.getOutputStream();
+        }            
+    }
+                
+}
